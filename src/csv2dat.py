@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 import sys
+
+sys.path.append('./lib')
+
 import logging
 import logging.handlers
 import optparse
@@ -9,6 +12,7 @@ import fileinput
 import itertools
 import struct
 import time
+import socket
 
 from functools import partial
 
@@ -38,7 +42,7 @@ def parse_args(argv):
     p = optparse.OptionParser()
 
     cmdlist = []
-    for cmd, (f, usage) in sorted(cmds.iteritems()):
+    for cmd, (f, usage) in sorted(cmds.items()):
         cmdlist.append('%-8s\t%%prog %s' % (cmd, usage))
     cmdlist = '\n  '.join(cmdlist)
 
@@ -66,7 +70,7 @@ def test_dbs(opts, args):
     gi_tst = pygeoip.GeoIP(tst_file, pygeoip.MEMORY_CACHE)
     dbtype = gi_ref._databaseType
     if gi_ref._databaseType != gi_tst._databaseType:
-        print "error: database types don't match"
+        print("error: database types don't match")
         exit(1)
 
     if opts.geoip:
@@ -97,7 +101,7 @@ def test_dbs(opts, args):
         get_ref = gi_ref.country_code_by_addr
         get_tst = gi_tst.country_code_by_addr
     else:
-        print "error: unknown database type"
+        print("error: unknown database type")
         exit(1)
 
     ok = bad = 0
@@ -106,11 +110,11 @@ def test_dbs(opts, args):
         ref = get_ref(ip)
         tst = get_tst(ip)
         if not isequal(ref, tst):
-            print ip, ref, tst
+            print(ip, ref, tst)
             bad += 1
         else:
             ok += 1
-    print 'ok:', ok, 'bad:', bad
+    print('ok:', ok, 'bad:', bad)
 test_dbs.usage = 'test reference.dat test.dat ips.txt'
 
 
@@ -209,7 +213,7 @@ class RadixTree(object):
 
     def dump(self):
         for node in self.segments:
-            print node.segment, [self.dump_node(node.lhs), self.dump_node(node.rhs)]
+            print(node.segment, [self.dump_node(node.lhs), self.dump_node(node.rhs)])
 
     def encode(self, *args):
         raise NotImplementedError
@@ -318,9 +322,12 @@ class CityRev1RadixTree(RadixTree):
             loc = row[2:]
             if id_loc:
                 loc = id_loc[loc[0]]
-            lo, hi = ipaddr.IPAddress(int(lo)), ipaddr.IPAddress(int(hi))
+            #lo, hi = ipaddr.IPAddress(int(lo)), ipaddr.IPAddress(int(hi))
+            lo, hi = ipaddr.IPAddress(int(socket.inet_aton(lo).encode("hex"),16)), ipaddr.IPAddress(int(socket.inet_aton(hi).encode("hex"),16))
             nets = ipaddr.summarize_address_range(lo, hi)
             yield nets, tuple(loc)
+
+
 
     def encode(self, country, region, city, postal_code, lat, lon, metro_code, area_code):
         def str2num(num, ntype):
@@ -363,6 +370,8 @@ class CityRev1v6RadixTree(CityRev1RadixTree):
             #v6 postal_code is after lat/lon instead of before like v4
             country, region, city, lat, lon, postal_code, metro_code, area_code = row[4:]
             yield nets, (country, region, city, postal_code, lat, lon, metro_code, area_code)
+
+
 
 
 class CountryRadixTree(RadixTree):
@@ -445,8 +454,8 @@ def build_dat(RTree, opts, args):
         r.serialize(f)
 
     tstop = time.time()
-    print 'wrote %d-node trie with %d networks (%d distinct labels) in %d seconds' % (
-            len(r.segments), r.netcount, len(r.data_offsets), tstop - tstart)
+    print('wrote %d-node trie with %d networks (%d distinct labels) in %d seconds' % (
+            len(r.segments), r.netcount, len(r.data_offsets), tstop - tstart))
 
 
 rtrees = [
