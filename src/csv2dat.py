@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 import sys
 
+###### Comment this to use system libs ##########
 sys.path.append('./lib')
+#################################################
 
 import logging
 import logging.handlers
