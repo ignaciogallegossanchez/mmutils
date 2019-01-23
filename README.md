@@ -1,6 +1,15 @@
 mmutils
 =======
 
+Comando para pasar las ips al formato aton:
+~~~~
+python -c 'exec("import sys,socket\nfor ip in sys.argv[1:]:\n    print ip, int(socket.inet_aton(ip).encode(\"hex\"),16)\n")' 88.99.22.1 88.99.22.11
+~~~~
+
+
+mmutils
+=======
+
 **Note: These tools work with MaxMind Legacy format databases.  For information on the new GeoIP2 databases, including a writer, see: http://maxmind.github.io/MaxMind-DB/**
 
 Tools for working with MaxMind GeoIP csv and dat files
